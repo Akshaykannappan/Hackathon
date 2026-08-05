@@ -1,0 +1,40 @@
+{% extends "layouts/base.html" %}
+{% block title %}Catalog — SmartReco{% endblock %}
+{% block body_data %}data-page="catalog" data-category="{{ selected_category }}"{% endblock %}
+
+{% block content %}
+<h1>Catalog</h1>
+
+<form method="get" action="/catalog" class="filters">
+  <input
+    type="search"
+    name="q"
+    value="{{ q }}"
+    placeholder="Search titles and descriptions"
+    aria-label="Search"
+    data-track-search
+  />
+
+  <select name="category" aria-label="Category">
+    <option value="">All categories</option>
+    {% for c in categories %}
+      <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Filter</button>
+  {% if q or selected_category %}<a class="muted" href="/catalog">Reset</a>{% endif %}
+</form>
+
+<p class="muted">{{ products|length }} course{{ '' if products|length == 1 else 's' }}</p>
+
+{% if products %}
+  <div class="grid">
+    {% for product in products %}
+      {% include "partials/product_card.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <p>No courses match that search.</p>
+{% endif %}
+{% endblock %}

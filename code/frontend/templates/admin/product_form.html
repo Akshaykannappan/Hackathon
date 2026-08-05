@@ -1,0 +1,35 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ "Edit" if product_id else "New" }} product — SmartReco Admin{% endblock %}
+
+{% block content %}
+<p class="muted"><a href="/admin/products">← Back to products</a></p>
+
+<h1>{{ "Edit product" if product_id else "New product" }}</h1>
+
+<form method="post" action="{{ action }}" class="form">
+  <label for="title">Title</label>
+  <input type="text" id="title" name="title" value="{{ values.title }}" required />
+
+  <label for="description">Description</label>
+  <textarea id="description" name="description" rows="5" required>{{ values.description }}</textarea>
+  <p class="muted small">
+    Two to three specific sentences. This text is embedded for retrieval, so
+    vague copy produces a weak vector.
+  </p>
+
+  <label for="category">Category</label>
+  <input type="text" id="category" name="category" value="{{ values.category }}" required />
+
+  <label for="level">Level</label>
+  <select id="level" name="level">
+    {% for lvl in levels %}
+      <option value="{{ lvl }}" {% if lvl == values.level %}selected{% endif %}>{{ lvl }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="price">Price (USD)</label>
+  <input type="number" id="price" name="price" value="{{ values.price }}" step="0.01" min="0" required />
+
+  <button type="submit">{{ "Save changes" if product_id else "Create product" }}</button>
+</form>
+{% endblock %}

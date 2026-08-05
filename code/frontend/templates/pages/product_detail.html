@@ -1,0 +1,23 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ product.title }} — SmartReco{% endblock %}
+{% block body_data %}data-page="product" data-product-id="{{ product.id }}" data-category="{{ product.category }}" data-level="{{ product.level }}"{% endblock %}
+
+{% block content %}
+<p class="muted"><a href="/catalog">← Back to catalog</a></p>
+
+<h1>{{ product.title }}</h1>
+
+<p class="card-meta">
+  <span class="tag">{{ product.category }}</span>
+  <span class="tag">{{ product.level }}</span>
+  <span class="price">${{ "%.2f"|format(product.price) }}</span>
+</p>
+
+<p>{{ product.description }}</p>
+
+{% if user and user.role == "admin" %}
+  <p class="muted small">
+    <a href="/admin/products/{{ product.id }}/edit">Edit this product</a>
+  </p>
+{% endif %}
+{% endblock %}

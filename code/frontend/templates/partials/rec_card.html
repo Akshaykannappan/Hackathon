@@ -1,0 +1,17 @@
+<article
+  class="card rec-card"
+  data-track-card
+  data-track-source="recommendation"
+  data-product-id="{{ product.id }}"
+  data-category="{{ product.category }}"
+>
+  <h3 class="card-title">
+    <a href="/product/{{ product.id }}">{{ product.title }}</a>
+  </h3>
+  <p class="card-meta">
+    <span class="tag tag-primary">{{ product.category }}</span>
+    <span class="tag">{{ product.level }}</span>
+    <span class="price">${{ "%.2f"|format(product.price) }}</span>
+  </p>
+  <p class="card-body">{{ product.description|truncate(160) }}</p>
+</article>

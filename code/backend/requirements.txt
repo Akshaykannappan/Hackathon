@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+jinja2
+python-multipart
+bcrypt
+itsdangerous
+pydantic-settings
+python-dotenv
+openai
+chromadb
+langgraph
+langsmith
+apscheduler
+httpx
+tenacity
+pytest

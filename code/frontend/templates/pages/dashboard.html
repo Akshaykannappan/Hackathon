@@ -1,0 +1,41 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard — SmartReco{% endblock %}
+
+{% block content %}
+<section class="dashboard-container">
+  <header class="page-header">
+    <h1>Your Recommendations</h1>
+    {% if is_cold_start %}
+      <span class="badge badge-warning">Cold Start Mode</span>
+    {% else %}
+      <span class="badge badge-success">Catalog Grounded</span>
+    {% endif %}
+  </header>
+
+  <div class="recommendation-narrative-card">
+    <div class="narrative-header">
+      <span class="sparkle-icon">✨</span>
+      <h3>AI Reco Assistant</h3>
+    </div>
+    <div class="narrative-body">
+      {% if is_cold_start %}
+        <p>{{ cold_message }}</p>
+      {% else %}
+        <p>{{ recommendation.message }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="recommendation-results">
+    <h2>{% if is_cold_start %}Explore Catalog Breadth{% else %}Recommended Courses{% endif %}</h2>
+    <div class="grid">
+      {% for product in products %}
+        {% include "partials/rec_card.html" %}
+      {% else %}
+        <p class="muted">No products found in catalog.</p>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}

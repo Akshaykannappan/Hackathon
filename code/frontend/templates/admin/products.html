@@ -1,0 +1,47 @@
+{% extends "layouts/base.html" %}
+{% block title %}Products — SmartReco Admin{% endblock %}
+
+{% block content %}
+<h1>Products</h1>
+
+<p><a class="button" href="/admin/products/new">New product</a></p>
+
+<p class="muted">{{ products|length }} in catalog</p>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Category</th>
+      <th>Level</th>
+      <th>Price</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for product in products %}
+      <tr>
+        <td>{{ product.id }}</td>
+        <td><a href="/product/{{ product.id }}">{{ product.title }}</a></td>
+        <td>{{ product.category }}</td>
+        <td>{{ product.level }}</td>
+        <td>${{ "%.2f"|format(product.price) }}</td>
+        <td class="actions">
+          <a href="/admin/products/{{ product.id }}/edit">Edit</a>
+          <form
+            method="post"
+            action="/admin/products/{{ product.id }}/delete"
+            class="inline"
+            onsubmit="return confirm('Delete “{{ product.title }}”?');"
+          >
+            <button type="submit" class="link-button danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6">No products yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

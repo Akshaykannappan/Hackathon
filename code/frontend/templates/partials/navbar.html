@@ -1,0 +1,22 @@
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a class="brand" href="/catalog">SmartReco</a>
+
+    <div class="navbar-links">
+      <a href="/catalog">Catalog</a>
+
+      {% if user %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/intelligence">Intelligence</a>
+        {% if user.role == "admin" %}<a href="/admin/products">Admin</a>{% endif %}
+        <span class="muted">{{ user.email }}</span>
+        <form method="post" action="/logout" class="inline">
+          <button type="submit" class="link-button">Log out</button>
+        </form>
+      {% else %}
+        <a href="/login">Log in</a>
+        <a href="/register">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

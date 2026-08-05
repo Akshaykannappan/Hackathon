@@ -1,0 +1,167 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Intelligence Panel — SmartReco{% endblock %}
+
+{% block content %}
+<section class="intelligence-container">
+  <header class="page-header">
+    <h1>Behavioural Intelligence & Agent Observability</h1>
+    <p class="muted">Real-time interest profile modeling, trigger engine state, and execution auditing.</p>
+  </header>
+
+  <!-- Top Metrics Row -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <span class="metric-value">{{ efficiency.events_captured }}</span>
+      <span class="metric-label">Events Captured</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-value">{{ efficiency.llm_calls }}</span>
+      <span class="metric-label">Mesh LLM Calls</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-value">{{ efficiency.cache_hits }}</span>
+      <span class="metric-label">Cache Hits</span>
+    </div>
+  </div>
+
+  <div class="intelligence-layout-grid">
+    <!-- Left Column: Interests & Signals -->
+    <div class="intel-col">
+      <div class="panel-card">
+        <h3>User Interest Profile</h3>
+        {% if interests %}
+          <div class="interest-bars">
+            {% for item in interests %}
+              <div class="interest-item">
+                <div class="interest-info">
+                  <span class="topic-name">{{ item.topic }}</span>
+                  <span class="topic-score {% if item.is_negative %}score-negative{% else %}score-positive{% endif %}">
+                    {{ "%.4f"|format(item.score) }}
+                  </span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div
+                    class="progress-bar-fill {% if item.is_negative %}fill-negative{% else %}fill-positive{% endif %}"
+                    style="width: {{ item.percentage }}%;"
+                  ></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No interest signals recorded yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="panel-card">
+        <h3>Recent Signals (Plain Language)</h3>
+        {% if signals %}
+          <ul class="signal-list">
+            {% for signal in signals %}
+              <li>{{ signal }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">No recent behavioral signals.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Trigger State & Retrieval Funnel -->
+    <div class="intel-col">
+      <div class="panel-card">
+        <h3>Latest Trigger Evaluation</h3>
+        <div class="trigger-status-box">
+          <div class="trigger-metric">
+            <span class="label">Accumulated Delta</span>
+            <span class="val">{{ "%.4f"|format(trigger_state.delta) }} / {{ trigger_state.threshold }}</span>
+          </div>
+          <div class="trigger-metric">
+            <span class="label">Latest Outcome</span>
+            {% if trigger_state.fired %}
+              <span class="badge badge-success">FIRED</span>
+            {% else %}
+              <span class="badge badge-secondary">SKIPPED</span>
+            {% endif %}
+          </div>
+          <div class="trigger-metric">
+            <span class="label">Decision Reason</span>
+            <code>{{ trigger_state.reason }}</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Retrieval Funnel (Latest Run)</h3>
+        <div class="funnel-grid">
+          <div class="funnel-step">
+            <span class="funnel-num">{{ funnel.retrieved }}</span>
+            <span class="funnel-name">Retrieved</span>
+          </div>
+          <span class="funnel-arrow">→</span>
+          <div class="funnel-step">
+            <span class="funnel-num">{{ funnel.filtered }}</span>
+            <span class="funnel-name">Filtered</span>
+          </div>
+          <span class="funnel-arrow">→</span>
+          <div class="funnel-step">
+            <span class="funnel-num">{{ funnel.reranked }}</span>
+            <span class="funnel-name">Reranked</span>
+          </div>
+          <span class="funnel-arrow">→</span>
+          <div class="funnel-step">
+            <span class="funnel-num">{{ funnel.recommended }}</span>
+            <span class="funnel-name">Recommended</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Execution Runs Table -->
+  <div class="panel-card table-panel">
+    <h3>Recent Agent Runs (Last 10)</h3>
+    {% if runs %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Reason</th>
+            <th>LLM Calls</th>
+            <th>Cache Hit</th>
+            <th>Latency</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in runs %}
+            <tr>
+              <td>#{{ run.id }}</td>
+              <td><code>{{ run.trigger_reason }}</code></td>
+              <td>{{ run.llm_calls }}</td>
+              <td>
+                {% if run.cache_hit %}
+                  <span class="badge badge-info">Yes</span>
+                {% else %}
+                  <span class="muted">No</span>
+                {% endif %}
+              </td>
+              <td>{{ run.latency_ms }} ms</td>
+              <td>
+                {% if run.status == "ok" %}
+                  <span class="badge badge-success">OK</span>
+                {% else %}
+                  <span class="badge badge-danger">{{ run.status }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No agent execution runs recorded yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

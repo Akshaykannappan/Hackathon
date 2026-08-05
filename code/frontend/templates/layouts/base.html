@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}SmartReco{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/main.css" />
+  </head>
+  <body
+    data-authenticated="{{ 'true' if user else 'false' }}"
+    {% block body_data %}{% endblock %}
+  >
+    {% include "partials/navbar.html" %}
+
+    <main class="container">
+      {% if error %}<p class="alert alert-error">{{ error }}</p>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container muted">
+      SmartReco — behavioural course recommendations
+    </footer>
+
+    <script src="/static/js/tracker.js" defer></script>
+  </body>
+</html>
