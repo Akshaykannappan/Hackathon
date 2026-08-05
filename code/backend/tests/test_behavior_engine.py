@@ -6,6 +6,7 @@ from sqlmodel import Session
 from app.models import Product, User
 from app.services.behavior_engine import (
     HALF_LIFE_HOURS,
+    LEVEL_CAP,
     LEVEL_PREFIX,
     build_profile,
     compute_profile_hash,
@@ -179,8 +180,12 @@ def test_product_events_record_category_and_level(
 
     profile = profile_for(session, user)
 
+    # Category topic is at max (1.0).
     assert profile["agentic_ai"] == pytest.approx(1.0)
-    assert profile[f"{LEVEL_PREFIX}advanced"] == pytest.approx(1.0)
+    # Level topic must be capped at LEVEL_CAP × top-category (= 0.5).
+    assert profile[f"{LEVEL_PREFIX}advanced"] == pytest.approx(LEVEL_CAP)
+    # Level always strictly below any category topic.
+    assert profile[f"{LEVEL_PREFIX}advanced"] < profile["agentic_ai"]
 
 
 def test_search_splits_its_weight_across_topics(session: Session, user: User):
@@ -238,7 +243,7 @@ def test_scores_are_normalised_into_unit_range(
 def test_level_topics_and_category_topics_normalise_independently(
     session: Session, user: User, products: dict[str, Product]
 ):
-    """Level topics normalise independently so they never exceed top category score."""
+    """Level topics are capped at LEVEL_CAP × top-category so they always sort below categories."""
     # rag (category) + level:advanced (+2.0 each)
     add_event(session, user, "product_view", product=products["rag"])
     # agentic (category) + level:advanced (+2.0 each)
@@ -246,11 +251,14 @@ def test_level_topics_and_category_topics_normalise_independently(
 
     profile = profile_for(session, user)
 
-    # Both categories are at max (2.0 raw -> 1.0 normalised)
+    # Both categories are at max (2.0 raw → 1.0 normalised)
     assert profile["rag"] == pytest.approx(1.0)
     assert profile["agentic_ai"] == pytest.approx(1.0)
-    # Level:advanced raw is 4.0, but normalises independently to 1.0
-    assert profile[f"{LEVEL_PREFIX}advanced"] == pytest.approx(1.0)
+    # Level:advanced is capped at LEVEL_CAP × top_cat (1.0), not 1.0.
+    assert profile[f"{LEVEL_PREFIX}advanced"] == pytest.approx(LEVEL_CAP)
+    # Level never ties or exceeds a category topic.
+    assert profile[f"{LEVEL_PREFIX}advanced"] < profile["rag"]
+    assert profile[f"{LEVEL_PREFIX}advanced"] < profile["agentic_ai"]
 
 
 def test_empty_history_yields_an_empty_profile(session: Session, user: User):

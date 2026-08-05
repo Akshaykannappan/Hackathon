@@ -2,34 +2,36 @@
 {% block title %}{{ "Edit" if product_id else "New" }} product — SmartReco Admin{% endblock %}
 
 {% block content %}
-<p class="muted"><a href="/admin/products">← Back to products</a></p>
+<div class="form form-wide">
+  <p class="muted small"><a href="/admin/products">← Back to products</a></p>
 
-<h1>{{ "Edit product" if product_id else "New product" }}</h1>
+  <h1>{{ "Edit product" if product_id else "New product" }}</h1>
+  <p class="muted small form-lede">Saving dual-writes to the SQL row and the vector collection.</p>
 
-<form method="post" action="{{ action }}" class="form">
-  <label for="title">Title</label>
-  <input type="text" id="title" name="title" value="{{ values.title }}" required />
+  <form method="post" action="{{ action }}">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" value="{{ values.title }}" placeholder="Course title" required />
 
-  <label for="description">Description</label>
-  <textarea id="description" name="description" rows="5" required>{{ values.description }}</textarea>
-  <p class="muted small">
-    Two to three specific sentences. This text is embedded for retrieval, so
-    vague copy produces a weak vector.
-  </p>
+    <label for="description">Description</label>
+    <textarea id="description" name="description" rows="5" placeholder="Detailed course summary..." required>{{ values.description }}</textarea>
+    <p class="muted small field-note">
+      Two to three specific sentences. This text is embedded for retrieval, so vague copy produces a weak vector.
+    </p>
 
-  <label for="category">Category</label>
-  <input type="text" id="category" name="category" value="{{ values.category }}" required />
+    <label for="category">Category</label>
+    <input type="text" id="category" name="category" value="{{ values.category }}" placeholder="e.g. Agentic AI, RAG, MLOps" required />
 
-  <label for="level">Level</label>
-  <select id="level" name="level">
-    {% for lvl in levels %}
-      <option value="{{ lvl }}" {% if lvl == values.level %}selected{% endif %}>{{ lvl }}</option>
-    {% endfor %}
-  </select>
+    <label for="level">Level</label>
+    <select id="level" name="level">
+      {% for lvl in levels %}
+        <option value="{{ lvl }}" {% if lvl == values.level %}selected{% endif %}>{{ lvl }}</option>
+      {% endfor %}
+    </select>
 
-  <label for="price">Price (USD)</label>
-  <input type="number" id="price" name="price" value="{{ values.price }}" step="0.01" min="0" required />
+    <label for="price">Price (USD)</label>
+    <input type="number" id="price" name="price" value="{{ values.price }}" step="0.01" min="0" required class="mono-input" />
 
-  <button type="submit">{{ "Save changes" if product_id else "Create product" }}</button>
-</form>
+    <button type="submit" class="button-block">{{ "Save changes" if product_id else "Create product" }}</button>
+  </form>
+</div>
 {% endblock %}

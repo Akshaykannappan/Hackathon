@@ -15,6 +15,7 @@ from app.routes import (
     events,
     intelligence,
     recommendations,
+    signals,
 )
 
 
@@ -22,6 +23,11 @@ from app.routes import (
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Create any missing tables before the first request is served."""
     init_db()
+    # Pre-warm the local ONNX embedding model so the first agent retrieval
+    # does not pay the cold-load penalty (was 3,500ms; warms to <100ms).
+    from app.services.vector_store import vector_store
+
+    vector_store.warm()
     from app.tracking.scheduler import start_scheduler, stop_scheduler
 
     start_scheduler()
@@ -39,6 +45,7 @@ app.include_router(admin.router)
 app.include_router(events.router)
 app.include_router(recommendations.router)
 app.include_router(intelligence.router)
+app.include_router(signals.router)
 
 
 @app.get("/health")

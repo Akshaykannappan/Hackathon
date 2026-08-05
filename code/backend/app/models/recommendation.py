@@ -25,6 +25,7 @@ class Recommendation(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
+    agent_run_id: int | None = Field(default=None, foreign_key="agent_runs.id", index=True)
     message: str
     product_ids: list[int] = Field(
         default_factory=list,

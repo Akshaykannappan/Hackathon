@@ -3,21 +3,71 @@
 {% block body_data %}data-page="product" data-product-id="{{ product.id }}" data-category="{{ product.category }}" data-level="{{ product.level }}"{% endblock %}
 
 {% block content %}
-<p class="muted"><a href="/catalog">← Back to catalog</a></p>
+{% set _words = product.title.split() %}
+<div class="product-detail-layout">
+  <div class="product-main-panel">
+    <p class="muted small"><a href="/">← Back to catalog</a></p>
 
-<h1>{{ product.title }}</h1>
+    <div class="card-thumbnail card-thumbnail--hero category-{{ product.category|lower|replace(' ', '-') }}">
+      <span class="thumbnail-initials">{{ (_words[0][0] ~ (_words[1][0] if _words|length > 1 else ''))|upper }}</span>
+      <span class="thumbnail-badge">{{ product.category }}</span>
+    </div>
 
-<p class="card-meta">
-  <span class="tag">{{ product.category }}</span>
-  <span class="tag">{{ product.level }}</span>
-  <span class="price">${{ "%.2f"|format(product.price) }}</span>
-</p>
+    <p class="eyebrow">{{ product.category }} · {{ product.level }}</p>
 
-<p>{{ product.description }}</p>
+    <h1>{{ product.title }}</h1>
 
-{% if user and user.role == "admin" %}
-  <p class="muted small">
-    <a href="/admin/products/{{ product.id }}/edit">Edit this product</a>
-  </p>
-{% endif %}
+    <p class="card-body">{{ product.description }}</p>
+
+    <div class="product-purchase-row">
+      <span class="product-price">${{ "%.2f"|format(product.price) }}</span>
+      <a class="button" href="/">Browse the catalog</a>
+    </div>
+
+    {% if user and user.role == "admin" %}
+      <p class="muted small admin-note">
+        <a href="/admin/products/{{ product.id }}/edit">Edit this product</a>
+      </p>
+    {% endif %}
+
+    {# Deterministic SQL lookup, not an agent recommendation. #}
+    {% if related_products %}
+      <section class="related-products-section">
+        <div class="section-heading-row">
+          <h3>Because you're looking at this</h3>
+          <span class="eyebrow">Catalog lookup</span>
+        </div>
+        <p class="muted small measured">Related courses by category and level — a deterministic query, not an agent recommendation.</p>
+
+        <div class="grid grid-compact">
+          {% for rel in related_products %}
+            {% set _rw = rel.title.split() %}
+            <article
+              class="card"
+              data-track-card
+              data-track-source="related"
+              data-product-id="{{ rel.id }}"
+              data-category="{{ rel.category }}"
+            >
+              <div class="card-thumbnail card-thumbnail--compact category-{{ rel.category|lower|replace(' ', '-') }}">
+                <span class="thumbnail-initials">{{ (_rw[0][0] ~ (_rw[1][0] if _rw|length > 1 else ''))|upper }}</span>
+                <span class="thumbnail-badge">Related</span>
+              </div>
+              <h4 class="card-title card-title--sm">
+                <a href="/product/{{ rel.id }}">{{ rel.title }}</a>
+              </h4>
+              <p class="card-meta">
+                <span class="tag tag-primary">{{ rel.category }}</span>
+                <span class="tag">{{ rel.level }}</span>
+                <span class="price">${{ "%.2f"|format(rel.price) }}</span>
+              </p>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </div>
+
+  {% include "partials/signal_panel.html" %}
+</div>
 {% endblock %}

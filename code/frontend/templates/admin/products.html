@@ -2,46 +2,52 @@
 {% block title %}Products — SmartReco Admin{% endblock %}
 
 {% block content %}
-<h1>Products</h1>
+<div class="page-header">
+  <div>
+    <h1>Catalog Administration</h1>
+    <p class="muted small">Every mutation dual-writes to SQL and the vector collection.</p>
+  </div>
+  <a class="button" href="/admin/products/new">New product</a>
+</div>
 
-<p><a class="button" href="/admin/products/new">New product</a></p>
+<p class="muted small table-caption">{{ products|length }} product{{ '' if products|length == 1 else 's' }} in catalog</p>
 
-<p class="muted">{{ products|length }} in catalog</p>
-
-<table class="table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Title</th>
-      <th>Category</th>
-      <th>Level</th>
-      <th>Price</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for product in products %}
+<div class="table-panel">
+  <table class="table">
+    <thead>
       <tr>
-        <td>{{ product.id }}</td>
-        <td><a href="/product/{{ product.id }}">{{ product.title }}</a></td>
-        <td>{{ product.category }}</td>
-        <td>{{ product.level }}</td>
-        <td>${{ "%.2f"|format(product.price) }}</td>
-        <td class="actions">
-          <a href="/admin/products/{{ product.id }}/edit">Edit</a>
-          <form
-            method="post"
-            action="/admin/products/{{ product.id }}/delete"
-            class="inline"
-            onsubmit="return confirm('Delete “{{ product.title }}”?');"
-          >
-            <button type="submit" class="link-button danger">Delete</button>
-          </form>
-        </td>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Level</th>
+        <th>Price</th>
+        <th>Actions</th>
       </tr>
-    {% else %}
-      <tr><td colspan="6">No products yet.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for product in products %}
+        <tr>
+          <td class="mono muted">{{ product.id }}</td>
+          <td><a href="/product/{{ product.id }}" class="row-title">{{ product.title }}</a></td>
+          <td><span class="tag tag-primary">{{ product.category }}</span></td>
+          <td><span class="tag">{{ product.level }}</span></td>
+          <td class="price">${{ "%.2f"|format(product.price) }}</td>
+          <td class="actions">
+            <a href="/admin/products/{{ product.id }}/edit" class="button secondary button-compact">Edit</a>
+            <form
+              method="post"
+              action="/admin/products/{{ product.id }}/delete"
+              class="inline"
+              onsubmit="return confirm('Delete “{{ product.title }}”?');"
+            >
+              <button type="submit" class="link-button danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="muted table-empty">No products in catalog yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

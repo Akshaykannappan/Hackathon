@@ -3,38 +3,111 @@
 {% block body_data %}data-page="catalog" data-category="{{ selected_category }}"{% endblock %}
 
 {% block content %}
-<h1>Catalog</h1>
+<div class="product-detail-layout">
+  <div class="catalog-main-panel">
+    <div class="page-header">
+      <div>
+        <h1>Course Catalog</h1>
+        <p class="muted small">Engineering and AI courses, read and re-read by the recommendation engine as you browse.</p>
+      </div>
+      <span class="muted small">{{ products|length }} course{{ '' if products|length == 1 else 's' }}</span>
+    </div>
 
-<form method="get" action="/catalog" class="filters">
-  <input
-    type="search"
-    name="q"
-    value="{{ q }}"
-    placeholder="Search titles and descriptions"
-    aria-label="Search"
-    data-track-search
-  />
+    {# The curator's note: the agent's message set as editorial copy, with the
+       courses it chose printed beneath it. #}
+    {% if rec_context %}
+      <div class="inline-recommendation-strip">
+        <div class="strip-header">
+          <div class="strip-title-row">
+            <span class="sparkle-icon"></span>
+            <h3>Selected for you</h3>
+            <span class="muted small">updated {{ rec_context.age }}</span>
+            {% if rec_context.is_stale %}
+              <span class="badge badge-warning badge-note">Interests have shifted — a new selection is queued</span>
+            {% endif %}
+          </div>
+        </div>
 
-  <select name="category" aria-label="Category">
-    <option value="">All categories</option>
-    {% for c in categories %}
-      <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
-    {% endfor %}
-  </select>
+        <p class="rec-lead-narrative">{{ rec_context.message }}</p>
 
-  <button type="submit">Filter</button>
-  {% if q or selected_category %}<a class="muted" href="/catalog">Reset</a>{% endif %}
-</form>
+        <div class="horizontal-rec-grid">
+          {% for product in rec_context.products %}
+            {% include "partials/rec_card.html" %}
+          {% endfor %}
+        </div>
 
-<p class="muted">{{ products|length }} course{{ '' if products|length == 1 else 's' }}</p>
+        <details class="build-summary">
+          <summary class="build-summary-toggle">How this was built</summary>
+          <div class="metrics-grid build-summary-body">
+            <div class="metric-card">
+              <span class="metric-value"><code>{{ rec_context.trigger_reason }}</code></span>
+              <span class="metric-label">Trigger Reason</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">{{ "%.4f"|format(rec_context.delta) }}</span>
+              <span class="metric-label">Accumulated Delta</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">{{ rec_context.candidates_count }}</span>
+              <span class="metric-label">Candidates Considered</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">{{ rec_context.llm_calls }}</span>
+              <span class="metric-label">Mesh LLM Calls</span>
+            </div>
+          </div>
+          <p class="muted small build-summary-link">
+            <a href="/intelligence">Open the AI Console for the full trace →</a>
+          </p>
+        </details>
+      </div>
+    {% elif cold_message %}
+      <div class="inline-recommendation-strip">
+        <div class="strip-header">
+          <div class="strip-title-row">
+            <span class="sparkle-icon"></span>
+            <h3>Selected for you</h3>
+            <span class="badge badge-warning">Cold Start Mode</span>
+          </div>
+        </div>
+        <p class="rec-lead-narrative">{{ cold_message }}</p>
+      </div>
+    {% endif %}
 
-{% if products %}
-  <div class="grid">
-    {% for product in products %}
-      {% include "partials/product_card.html" %}
-    {% endfor %}
+    <form method="get" action="/" class="filters">
+      <input
+        type="search"
+        name="q"
+        value="{{ q }}"
+        placeholder="Search titles and descriptions..."
+        aria-label="Search"
+        data-track-search
+      />
+
+      <select name="category" aria-label="Category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Filter</button>
+      {% if q or selected_category %}<a class="button secondary" href="/">Reset</a>{% endif %}
+    </form>
+
+    {% if products %}
+      <div class="grid">
+        {% for product in products %}
+          {% include "partials/product_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No courses match that search.</p>
+      </div>
+    {% endif %}
   </div>
-{% else %}
-  <p>No courses match that search.</p>
-{% endif %}
+
+  {% include "partials/signal_panel.html" %}
+</div>
 {% endblock %}

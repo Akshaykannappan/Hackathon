@@ -51,6 +51,7 @@ def store_recommendation(
     product_ids: list[int],
     interest_profile: dict[str, float],
     trigger_reason: str,
+    agent_run_id: int | None = None,
 ) -> Recommendation:
     """Persist a generated recommendation.
 
@@ -65,6 +66,7 @@ def store_recommendation(
         product_ids=list(product_ids),
         interest_profile=dict(interest_profile),
         trigger_reason=trigger_reason,
+        agent_run_id=agent_run_id,
     )
     session.add(recommendation)
     session.commit()

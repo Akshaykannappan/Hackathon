@@ -1,16 +1,23 @@
+{# Cover initials come from the course title, so every card is distinct.
+   The cover colour comes from the category (see `.category-*` in main.css). #}
+{% set _words = product.title.split() %}
 <article
   class="card"
   data-track-card
   data-product-id="{{ product.id }}"
   data-category="{{ product.category }}"
 >
+  <div class="card-thumbnail category-{{ product.category|lower|replace(' ', '-') }}">
+    <span class="thumbnail-initials">{{ (_words[0][0] ~ (_words[1][0] if _words|length > 1 else ''))|upper }}</span>
+    <span class="thumbnail-badge">{{ product.category }}</span>
+  </div>
   <h3 class="card-title">
     <a href="/product/{{ product.id }}">{{ product.title }}</a>
   </h3>
   <p class="card-meta">
-    <span class="tag">{{ product.category }}</span>
+    <span class="tag tag-primary">{{ product.category }}</span>
     <span class="tag">{{ product.level }}</span>
     <span class="price">${{ "%.2f"|format(product.price) }}</span>
   </p>
-  <p class="card-body">{{ product.description|truncate(160) }}</p>
+  <p class="card-body">{{ product.description|truncate(150) }}</p>
 </article>

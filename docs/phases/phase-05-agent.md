@@ -137,8 +137,8 @@ Fill these in as they are settled — later phases depend on them.
 
 | Item | Value |
 |------|-------|
-| Embedding model | `openai/text-embedding-3-small` (pending account balance) |
-| Embedding dimension | `1536` |
+| Embedding model | `all-MiniLM-L6-v2` (Chroma local ONNX) / `openai/text-embedding-3-small` (Mesh API when balance exists) |
+| Embedding dimension | `384` (local) / `1536` (Mesh) |
 | Chroma collection name | `smartreco_products` |
 | Chat model for the planner | `minimax/m2-her` |
 | Chat model for the generator | `minimax/m2-her` |
@@ -149,6 +149,7 @@ Fill these in as they are settled — later phases depend on them.
 
 ## Notes / issues encountered
 
-- **Dual Retriever Architecture:** Implemented `Retriever` protocol with two concrete classes: `ChromaRetriever` (Mesh embeddings + Chroma vector search) and `KeywordRetriever` (SQL token matching fallback). `get_retriever()` automatically detects Mesh embedding availability and falls back cleanly to `KeywordRetriever` when embeddings are unavailable (e.g. account balance required). The moment embedding balance is present, `ChromaRetriever` automatically becomes primary without code changes.
+- **Chroma Local & Mesh Embedding Backends:** To ensure a fully queried vector database (`chroma.sqlite3`) exists without requiring Mesh API embedding balance (`402 spend_limit_exceeded`), `VectorStore` supports both `mesh` embeddings and Chroma's bundled `local` ONNX model (`all-MiniLM-L6-v2`). `EMBEDDING_BACKEND=auto` probes Mesh once and falls back to local embeddings. Switching to Mesh embeddings is a single env setting (`EMBEDDING_BACKEND=mesh`) plus a reindex.
+- **Mesh LLM Compliance:** Every generative LLM call (`plan_queries` and `generate`) routes exclusively through the Mesh API.
 - **Product ID Grounding & Validation:** The `validate` node unconditionally rejects any product ID returned by the generator LLM that was not present in the candidate set. If fewer than 2 valid IDs survive, the run is marked `degraded` and the user's previous recommendation is retained.
 - **Strict 2-Call LLM Budget:** The graph execution uses at most 2 Mesh LLM calls (`plan_queries` and `generate`). Refinement and query broadening are handled deterministically in Python (`broaden` node) and capped at 1 pass.

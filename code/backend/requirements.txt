@@ -1,6 +1,9 @@
 fastapi
 uvicorn[standard]
 sqlmodel
+sqlalchemy
+pydantic
+starlette
 jinja2
 python-multipart
 bcrypt

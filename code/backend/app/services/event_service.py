@@ -128,13 +128,19 @@ def store_events_in_background(user_id: int, events: Sequence[EventIn]) -> None:
             if decision.fire:
                 from app.agent.graph import run_agent
 
-                run_agent(
-                    session,
-                    user_id,
-                    trigger_reason=decision.reason,
-                    profile=decision.profile,
-                    profile_hash=decision.profile_hash,
-                )
+                # Open a fresh session for the agent so that:
+                # 1. A failure in run_agent cannot roll back the already-committed
+                #    trigger_evaluation row written by should_generate().
+                # 2. The agent's own session.commit() (inside store()) is not
+                #    entangled with the ingest session's state.
+                with Session(engine) as agent_session:
+                    run_agent(
+                        agent_session,
+                        user_id,
+                        trigger_reason=decision.reason,
+                        profile=decision.profile,
+                        profile_hash=decision.profile_hash,
+                    )
         except Exception:  # noqa: BLE001
             session.rollback()
             logger.exception("trigger.evaluation_failed user_id=%s", user_id)

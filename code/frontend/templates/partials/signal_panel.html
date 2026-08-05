@@ -1,0 +1,35 @@
+<aside class="reserved-signal-panel signal-panel-container" id="signal-panel-container">
+  <div class="panel-header">
+    <div class="status-indicator">
+      <span class="status-dot"></span>
+      <span class="status-label">OBSERVED BY AGENT</span>
+    </div>
+  </div>
+
+  <!-- Signal Chips Stream (Newest First) -->
+  <div class="signal-section">
+    <h4 class="signal-section-title">Recent Signals</h4>
+    <div id="signal-chips-list" class="signal-chips-list">
+      <div id="signal-empty-state" class="signal-empty-state">
+        Browse a course — the agent starts reading your signal
+      </div>
+    </div>
+  </div>
+
+  {#
+    One plain-English line about the profile. Raw topic keys, level prefixes
+    and numeric scores are developer data and live on the Console only.
+    Rendered server-side; the poller refreshes the text in place. A Jinja
+    comment, not an HTML one — implementation notes should not ship to the page.
+  #}
+  <div class="signal-section" id="signal-interest-summary-section"
+       {% if not interest_summary %}style="display: none;"{% endif %}>
+    <p class="signal-interest-summary" id="signal-interest-summary">{{ interest_summary or "" }}</p>
+  </div>
+
+  <!-- Current Recommendation Box -->
+  <div class="signal-section" id="signal-recommendation-section" style="display: none;">
+    <h4 class="signal-section-title">Live Agent Recommendation</h4>
+    <div id="signal-recommendation-box" class="signal-recommendation-box"></div>
+  </div>
+</aside>

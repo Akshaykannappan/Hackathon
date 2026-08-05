@@ -7,11 +7,6 @@ The pattern in every mutation is the same —
     session.flush()   # take the primary key, hold the transaction open
     <vector sync>     # if this raises, roll back; never half-commit
     session.commit()
-
-While Mesh embeddings are unavailable (see `docs/phases/phase-05-agent.md`) the
-vector half is skipped and says so in the log. It is skipped, not faked: no
-placeholder vector is ever written, so the collection never disagrees with SQL
-about something it claims to know.
 """
 
 import logging
@@ -39,12 +34,7 @@ def list_products(
     q: str | None = None,
     category: str | None = None,
 ) -> list[Product]:
-    """Catalog listing with optional keyword search and category filter.
-
-    Keyword search here is plain SQL matching — browsing, not retrieval.
-    Semantic search belongs to the agent's Chroma query, and conflating the two
-    is how a vector store ends up written to but never queried (CONTEXT §9).
-    """
+    """Catalog listing with optional keyword search and category filter."""
     statement = select(Product)
 
     if q and q.strip():
@@ -79,28 +69,8 @@ def count_products(session: Session) -> int:
     return session.exec(select(func.count()).select_from(Product)).one()
 
 
-def _vectors_enabled() -> bool:
-    """Whether the vector half of a write can run at all.
-
-    Imported inside the call so that neither chromadb nor a Mesh probe is
-    touched by a plain catalog read.
-    """
-    from app.services.retrieval import embeddings_available
-
-    return embeddings_available()
-
-
 def _sync_upsert(session: Session, product: Product, *, operation: str) -> bool:
-    """Embed and upsert one product, or roll the SQL write back trying."""
-    if not _vectors_enabled():
-        logger.warning(
-            "product_service.vector_sync_skipped op=%s product_id=%s "
-            "reason=embeddings_unavailable",
-            operation,
-            product.id,
-        )
-        return False
-
+    """Embed and upsert one product into Chroma using active backend, or roll SQL write back."""
     from app.services.vector_store import vector_store
 
     try:
@@ -121,15 +91,7 @@ def _sync_upsert(session: Session, product: Product, *, operation: str) -> bool:
 
 
 def _sync_delete(session: Session, product_id: int) -> bool:
-    """Remove one product's vector, or roll the SQL delete back trying."""
-    if not _vectors_enabled():
-        logger.warning(
-            "product_service.vector_sync_skipped op=delete product_id=%s "
-            "reason=embeddings_unavailable",
-            product_id,
-        )
-        return False
-
+    """Remove one product's vector from Chroma, or roll SQL delete back."""
     from app.services.vector_store import vector_store
 
     try:
@@ -149,13 +111,14 @@ def _sync_delete(session: Session, product_id: int) -> bool:
 
 
 def create_product(session: Session, data: ProductCreate) -> Product:
-    """Insert a product, embed it, and commit both or neither.
-
-    The flush assigns the primary key — which *is* the Chroma document ID — while
-    leaving the transaction open, so a failed embedding rolls the row back
-    instead of leaving SQL holding a product the vector store has never heard of.
-    """
-    product = Product(**data.model_dump())
+    """Insert a product, embed it, and commit both or neither."""
+    product = Product(
+        title=data.title,
+        description=data.description,
+        category=data.category,
+        level=data.level,
+        price=data.price,
+    )
     session.add(product)
     session.flush()
 
@@ -169,16 +132,16 @@ def create_product(session: Session, data: ProductCreate) -> Product:
 def update_product(
     session: Session, product_id: int, data: ProductUpdate
 ) -> Product | None:
-    """Replace a product's fields and re-embed under the same ID.
-
-    `updated_at` advances automatically via the column's `onupdate`.
-    """
+    """Update a product, re-embed it, and commit both or neither."""
     product = session.get(Product, product_id)
     if product is None:
         return None
 
-    for field, value in data.model_dump().items():
-        setattr(product, field, value)
+    product.title = data.title
+    product.description = data.description
+    product.category = data.category
+    product.level = data.level
+    product.price = data.price
 
     session.add(product)
     session.flush()
@@ -191,13 +154,7 @@ def update_product(
 
 
 def delete_product(session: Session, product_id: int) -> bool:
-    """Delete a product from both stores. Returns False if it was already gone.
-
-    Phase 4 note, still open: `events.product_id` is a foreign key and SQLite
-    enforces it, so a product with tracked events needs `ON DELETE SET NULL` on
-    that column — a viewed-then-removed product is still a real behavioural
-    signal.
-    """
+    """Delete a product, remove its vector, and commit both or neither."""
     product = session.get(Product, product_id)
     if product is None:
         return False

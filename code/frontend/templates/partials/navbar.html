@@ -1,21 +1,42 @@
 <nav class="navbar">
   <div class="container navbar-inner">
-    <a class="brand" href="/catalog">SmartReco</a>
+    <a class="brand" href="/">
+      <span>SmartReco</span>
+      <span class="brand-tag">AI</span>
+    </a>
 
-    <div class="navbar-links">
-      <a href="/catalog">Catalog</a>
+    <div class="navbar-center">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-label">ENGINE ONLINE</span>
+      </div>
 
+      {% if user and user.role == "admin" %}
+        <div class="navbar-links">
+          <a href="/admin/products">Admin</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="navbar-right">
       {% if user %}
-        <a href="/dashboard">Dashboard</a>
-        <a href="/intelligence">Intelligence</a>
-        {% if user.role == "admin" %}<a href="/admin/products">Admin</a>{% endif %}
-        <span class="muted">{{ user.email }}</span>
+        <a href="/intelligence" class="nav-icon-button" title="AI Console" aria-label="AI Console">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="8 9 11 12 8 15"></polyline>
+            <line x1="13" y1="15" x2="16" y2="15"></line>
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          </svg>
+        </a>
+        <span class="user-meta">{{ user.email }}</span>
         <form method="post" action="/logout" class="inline">
           <button type="submit" class="link-button">Log out</button>
         </form>
       {% else %}
-        <a href="/login">Log in</a>
-        <a href="/register">Register</a>
+        <div class="navbar-links">
+          <a href="/login">Log in</a>
+          <a href="/register" class="button secondary">Register</a>
+        </div>
       {% endif %}
     </div>
   </div>

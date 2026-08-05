@@ -42,15 +42,21 @@ class Settings(BaseSettings):
     # keyword retriever when embeddings are unavailable. "chroma" and "keyword"
     # pin a backend explicitly.
     retrieval_backend: str = "auto"
+    embedding_backend: str = "auto"
     retrieval_top_k: int = 12
-    retrieval_similarity_threshold: float = 0.20
+    retrieval_similarity_threshold: float = 0.30
     retrieval_min_candidates: int = 4
 
     # --- Sessions ---
     session_secret: str = "change-me"
 
     # --- Trigger engine ---
-    trigger_delta_threshold: float = 10.0
+    # With HALF_LIFE_HOURS=0.75 and normalised scores in [−1, 1], a focused
+    # 90-second browsing session accumulates a first-batch delta of ~1.5 (one
+    # new category at 1.0 + one level topic at 0.5).  A threshold of 2.0 fires
+    # after the profile is established (category + level + search reinforcement)
+    # and prevents firing on a single product view alone.
+    trigger_delta_threshold: float = 2.0
     trigger_cooldown_minutes: int = 10
 
     # --- Bonus: tracing & scheduler ---
@@ -60,3 +66,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.langsmith_tracing and settings.langsmith_api_key:
+    import os
+
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
+    os.environ["LANGCHAIN_PROJECT"] = "smartreco"

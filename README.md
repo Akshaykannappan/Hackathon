@@ -73,8 +73,11 @@ SmartReco is a course-marketplace web platform that models user intent by observ
 | **Backend** | FastAPI | High-performance, asynchronous Python web framework for clean API routing. |
 | **ORM** | SQLModel (SQLAlchemy) | Type-safe ORM offering Pydantic data validation and minimal query boilerplate. |
 | **Database** | SQLite | Zero-setup relational storage ideal for evaluation; easily swapped via `DATABASE_URL`. |
-| **AI Gateway** | Mesh API | Unified compliance gateway for all LLM chat completion and embedding calls. |
-| **Vector DB** | Chroma & Keyword Fallback | Embedded local vector database with SQL keyword fallback when embeddings are unavailable. |
+| **AI Gateway** | Mesh API | Unified compliance gateway for all generative LLM chat completions (`plan_queries`, `generate`). |
+| **Vector DB** | Chroma (`all-MiniLM-L6-v2` / Mesh) | Embedded local Chroma vector database (`chroma.sqlite3`). Currently operates using Chroma's local embedding model as Mesh embeddings require account balance. Switching back to Mesh embeddings is a single env setting (`EMBEDDING_BACKEND=mesh`) plus a reindex. |
+
+> **Note on Vector Index Embeddings vs Generative LLM Calls:**  
+> All 72 catalog products are embedded and indexed in Chroma (`data/chroma/chroma.sqlite3`). Because Mesh embeddings require paid account balance (`402 spend_limit_exceeded`), the vector store automatically runs via Chroma's local ONNX embedding model (`EMBEDDING_BACKEND=auto`). Setting `EMBEDDING_BACKEND=mesh` switches back to Mesh embeddings without code changes. Every generative LLM call (`plan_queries`, `generate`) routes exclusively through the Mesh API.
 | **Agent Framework** | LangGraph | Explicit, traceable state-graph engine for orchestrating query planning and generation. |
 | **Frontend** | Jinja2 + Vanilla CSS/JS | Server-rendered HTML templates with responsive styling and zero client build toolchain. |
 | **Authentication** | Session Cookie + bcrypt | Tamper-proof session cookie handling paired with secure password hashing (`bcrypt`). |
@@ -131,12 +134,13 @@ SmartReco strictly enforces Mesh API compliance across all artificial intelligen
 
 ## Measured efficiency
 
-*Measured live via multi-persona simulation script (`scripts/simulate_behavior.py`):*
+*Measured live via 4-persona simulation (`scripts/simulate_behavior.py`) — 109 total events, running HTTP server, `ChromaRetriever` + local ONNX embeddings, `TRIGGER_DELTA_THRESHOLD=2.0`, `RETRIEVAL_SIMILARITY_THRESHOLD=0.30`:*
 
-- **p95 Tracking Latency:** `1.1 ms` for `POST /api/events/batch` (FastAPI `BackgroundTask` handles DB insert off the request path).
-- **LLM Calls per 100 Events:** `12.8` to `17.9` Mesh calls per 100 events (over 80% of event batches skip AI generation via trigger evaluation).
-- **Retrieval Funnel Efficiency:** Average progression through candidate funnel: `12 retrieved → 6 filtered → 6 reranked → 3 recommended`.
-- **Hard Budget Enforcement:** Maximum **2 Mesh LLM calls per agent run** (1 query planner call + 1 generator call).
+- **LLM Calls per 100 Events:** **1.83** — trigger engine skipped or cache-hit 95% of all evaluations. Only 1 of 41 evaluations resulted in a full agent run.
+- **p95 Tracking Latency:** **3.25 ms** for `POST /api/events/batch` (FastAPI `BackgroundTask` decouples DB writes from the response path).
+- **Vector Retrieve Latency:** **65–174 ms** (post-startup warm). Before the fix: 3,435–3,705ms. Root cause was ONNX model cold-load; fixed by module-level singleton and `vector_store.warm()` at startup.
+- **Retrieval Funnel:** `22 retrieved → 16 filtered (≥ 0.30 similarity) → 8 reranked → 2 recommended`.
+- **Hard Budget:** Maximum **2 Mesh LLM calls per agent run** (1 query planner + 1 generator). Zero non-Mesh providers.
 
 ---
 

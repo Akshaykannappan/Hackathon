@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rebuild Chroma vector collection from SQL products table.
 
-Drift recovery path (architecture §4).
+Drift recovery path (architecture §4). Works with both Mesh and local embeddings.
 """
 
 import sys
@@ -14,15 +14,12 @@ from sqlmodel import Session, select
 
 from app.core.database import engine
 from app.models import Product
-from app.services.retrieval import embeddings_available
 from app.services.vector_store import vector_store
 
 
 def reindex():
-    print("Checking Mesh embedding availability...")
-    if not embeddings_available(refresh=True):
-        print("WARNING: Mesh embeddings unavailable (e.g. account balance required). Vector reindex skipped.")
-        return
+    backend = vector_store.get_active_backend()
+    print(f"Active vector embedding backend: {backend.upper()}")
 
     with Session(engine) as session:
         products = list(session.exec(select(Product)).all())
@@ -31,7 +28,7 @@ def reindex():
         print("Resetting Chroma collection...")
         vector_store.reset()
 
-        print(f"Upserting {len(products)} vector embeddings...")
+        print(f"Upserting {len(products)} vector embeddings using {backend} backend...")
         count = vector_store.upsert_products(products)
         print(f"Successfully reindexed {count} products in Chroma vector store.")
 

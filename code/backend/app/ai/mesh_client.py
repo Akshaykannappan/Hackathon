@@ -105,6 +105,21 @@ def _escape_inner_quotes(text: str) -> str:
     return "".join(out)
 
 
+def _traceable_llm(name: str):
+    """Lazy decorator for langsmith's @traceable, gracefully no-oping if absent or disabled."""
+    def decorator(fn):
+        if _get_setting("langsmith_tracing", False) and _get_setting("langsmith_api_key", None):
+            try:
+                from langsmith import traceable
+
+                return traceable(name=name, run_type="llm")(fn)
+            except Exception:
+                pass
+        return fn
+
+    return decorator
+
+
 class MeshClient:
     """Centralized Mesh API client."""
 
@@ -130,6 +145,7 @@ class MeshClient:
         if current_key and self.client.api_key != current_key:
             self.client.api_key = current_key
 
+    @_traceable_llm("Mesh LLM Chat")
     def chat(self, messages: list[dict], **kwargs) -> str:
         """Send chat completion request to Mesh API with retries."""
         model = kwargs.pop("model", None) or _get_setting("mesh_chat_model", "openai/gpt-4o-mini")
@@ -153,6 +169,7 @@ class MeshClient:
         except Exception as e:
             raise MeshUnavailableError(f"Mesh chat call failed after 3 attempts: {e}") from e
 
+    @_traceable_llm("Mesh LLM Chat JSON")
     def chat_json(self, messages: list[dict], **kwargs) -> dict:
         """Send chat completion request expecting JSON object response.
 

@@ -488,6 +488,19 @@ def store(
         }
     )
 
+    run = AgentRun(
+        user_id=state["user_id"],
+        trigger_reason=trigger_reason,
+        nodes=trace,
+        llm_calls=state["llm_calls"],
+        cache_hit=state["cache_hit"],
+        latency_ms=latency_ms,
+        status=state["status"],
+        error=state["error"],
+    )
+    session.add(run)
+    session.flush()  # get the run.id
+
     stored = False
     if state["status"] == "ok" and state["product_ids"]:
         recommendation_service.store_recommendation(
@@ -497,6 +510,7 @@ def store(
             product_ids=state["product_ids"],
             interest_profile=state["profile"],
             trigger_reason=trigger_reason,
+            agent_run_id=run.id,
         )
         stored = True
     else:
@@ -506,6 +520,8 @@ def store(
         trace[-1]["retained_previous_recommendation_id"] = (
             previous.id if previous else None
         )
+        # trace was modified, re-assign it to trigger SQLAlchemy update
+        run.nodes = trace
         logger.warning(
             "agent.degraded user_id=%s reason=%s retained_previous=%s",
             state["user_id"],
@@ -513,18 +529,6 @@ def store(
             previous.id if previous else None,
         )
 
-    session.add(
-        AgentRun(
-            user_id=state["user_id"],
-            trigger_reason=trigger_reason,
-            nodes=trace,
-            llm_calls=state["llm_calls"],
-            cache_hit=state["cache_hit"],
-            latency_ms=latency_ms,
-            status=state["status"],
-            error=state["error"],
-        )
-    )
     session.commit()
 
     logger.info(

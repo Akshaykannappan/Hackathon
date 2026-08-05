@@ -64,6 +64,14 @@ STOPWORDS = frozenset(
 
 LEVEL_PREFIX = "level:"
 
+# Level topics are normalised independently of category topics so accumulated
+# level scores do not depress category scores.  But independent normalisation
+# makes the top level topic 1.0, identical to the top category — they tie.
+# Cap level topics at this fraction of the top category score so they always
+# sort below every category topic while preserving their relative order for
+# the reranker's level_match term.
+LEVEL_CAP = 0.5
+
 
 @dataclass(frozen=True)
 class InterestProfile:
@@ -237,6 +245,10 @@ def _normalise(raw: dict[str, float]) -> dict[str, float]:
     Category/search topics and level topics are normalised independently so
     accumulated level scores across different categories do not depress category
     scores or outrank the top category topic.
+
+    After independent normalisation the top level topic would tie the top
+    category topic at 1.0.  To guarantee level topics always sort below category
+    topics the entire level group is scaled by LEVEL_CAP (0.5 × top category).
     """
     if not raw:
         return {}
@@ -244,9 +256,22 @@ def _normalise(raw: dict[str, float]) -> dict[str, float]:
     cat_raw = {k: v for k, v in raw.items() if not k.startswith(LEVEL_PREFIX)}
     level_raw = {k: v for k, v in raw.items() if k.startswith(LEVEL_PREFIX)}
 
-    result = _normalise_group(cat_raw)
-    result.update(_normalise_group(level_raw))
+    cat_result = _normalise_group(cat_raw)
 
+    level_result = _normalise_group(level_raw)
+    if level_result:
+        # The top category score is 1.0 when any category topic exists,
+        # or 0.0 for a profile containing only level topics (degenerate).
+        top_cat = max(abs(v) for v in cat_result.values()) if cat_result else 1.0
+        cap = top_cat * LEVEL_CAP
+        level_result = {
+            k: round(v * cap, SCORE_PRECISION)
+            for k, v in level_result.items()
+            if round(v * cap, SCORE_PRECISION) != 0.0
+        }
+
+    result = dict(cat_result)
+    result.update(level_result)
     return dict(sorted(result.items()))
 
 

@@ -179,15 +179,27 @@ def test_cooldown_does_not_apply_before_the_first_generation(
 def test_delta_carries_forward_across_skips(
     session: Session, user: User, products: dict[str, Product]
 ):
-    """Change accumulates over evaluations until it is worth spending on."""
-    add_event(session, user, "product_view", product=products["rag"])
+    """Change accumulates over evaluations until it is worth spending on.
+
+    A single click (+1.0) builds a profile with delta < TRIGGER_DELTA_THRESHOLD.
+    A second click on a different category adds more change, and at that point
+    the accumulated delta clears the threshold.  The key invariant is that the
+    second evaluation's accumulated_delta is strictly larger than the first's.
+    """
+    # First event: click on rag — small delta (interest score contribution < threshold)
+    add_event(session, user, "click", product=products["rag"])
     first = should_generate(session, user.id, now=NOW)
 
-    add_event(session, user, "product_view", product=products["design"])
+    # The delta from one click alone must be strictly below the threshold.
+    assert first.accumulated_delta < settings.trigger_delta_threshold
+    assert first.fire is False
+
+    # Second event: click on a different category — delta grows.
+    add_event(session, user, "click", product=products["design"])
     second = should_generate(session, user.id, now=NOW)
 
+    # Accumulated delta must have grown across evaluations.
     assert second.accumulated_delta > first.accumulated_delta
-    assert second.fire is False
 
 
 def test_skipping_leaves_the_generation_stamp_untouched(

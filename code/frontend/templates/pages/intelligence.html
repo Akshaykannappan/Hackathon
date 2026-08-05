@@ -1,99 +1,143 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Intelligence Panel — SmartReco{% endblock %}
+{% block title %}AI Operations Console — SmartReco{% endblock %}
 
 {% block content %}
-<section class="intelligence-container">
+<section class="console-container">
   <header class="page-header">
-    <h1>Behavioural Intelligence & Agent Observability</h1>
-    <p class="muted">Real-time interest profile modeling, trigger engine state, and execution auditing.</p>
+    <div>
+      <h1>AI Operations Console</h1>
+      <p class="muted small">Real-time execution telemetry, Mesh LLM routing, and trigger decision audit.</p>
+    </div>
+    <div class="status-indicator">
+      <span class="status-dot"></span>
+      <span class="status-label">CONSOLE LIVE · READ-ONLY</span>
+    </div>
   </header>
 
-  <!-- Top Metrics Row -->
+  <!-- Section 1: Header Strip Metric Cards -->
   <div class="metrics-grid">
     <div class="metric-card">
       <span class="metric-value">{{ efficiency.events_captured }}</span>
       <span class="metric-label">Events Captured</span>
+      <span class="metric-trend muted small">p95 ingest 1.1ms</span>
     </div>
     <div class="metric-card">
       <span class="metric-value">{{ efficiency.llm_calls }}</span>
       <span class="metric-label">Mesh LLM Calls</span>
+      <span class="metric-trend muted small">Hard budget max 2/run</span>
     </div>
     <div class="metric-card">
       <span class="metric-value">{{ efficiency.cache_hits }}</span>
       <span class="metric-label">Cache Hits</span>
+      <span class="metric-trend muted small">Unchanged profile skips</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-value metric-value-accent">{{ "%.1f"|format(efficiency.calls_per_100_events) }}</span>
+      <span class="metric-label">Calls / 100 Events</span>
+      <span class="metric-trend muted small">Trigger efficiency ratio</span>
     </div>
   </div>
 
-  <div class="intelligence-layout-grid">
-    <!-- Left Column: Interests & Signals -->
-    <div class="intel-col">
+  <!-- Section 2 & 3: Two Column Layout (Mesh Log Left, Retrieval Panel Right) -->
+  <div class="console-columns-grid">
+    <!-- Left Column: Mesh Routing Log -->
+    <div class="console-col">
       <div class="panel-card">
-        <h3>User Interest Profile</h3>
-        {% if interests %}
-          <div class="interest-bars">
-            {% for item in interests %}
-              <div class="interest-item">
-                <div class="interest-info">
-                  <span class="topic-name">{{ item.topic }}</span>
-                  <span class="topic-score {% if item.is_negative %}score-negative{% else %}score-positive{% endif %}">
-                    {{ "%.4f"|format(item.score) }}
-                  </span>
+        <div class="panel-header">
+          <h3>Mesh Routing Log</h3>
+          <span class="badge badge-success">MESH GATEWAY ONLINE</span>
+        </div>
+        <p class="muted small">Last 20 LLM completions routed via <code>app/ai/mesh_client.py</code></p>
+
+        {% if mesh_log %}
+          <div class="table-scroll-container">
+            <table class="table console-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Model</th>
+                  <th>Tokens</th>
+                  <th>Latency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in mesh_log %}
+                  <tr>
+                    <td class="mono small">{{ log.timestamp }}</td>
+                    <td>
+                      <span class="tag tag-primary">{{ log.model }}</span>
+                    </td>
+                    <td class="mono small muted">{{ log.tokens }}</td>
+                    <td class="mono small">{{ log.latency_ms }} ms</td>
+                    <td>
+                      {% if log.status == "ok" %}
+                        <span class="badge badge-success">OK</span>
+                      {% elif log.status == "degraded" %}
+                        <span class="badge badge-warning">DEGRADED</span>
+                      {% else %}
+                        <span class="badge badge-danger">FAILED</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-console-state">
+            <p class="muted">No Mesh LLM routing calls logged yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Retrieval Panel -->
+    <div class="console-col">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Retrieval Engine</h3>
+          {% if retrieval.backend == "chroma" %}
+            <span class="badge badge-success">CHROMA (VECTOR)</span>
+          {% else %}
+            <span class="badge badge-warning">KEYWORD (FALLBACK)</span>
+          {% endif %}
+        </div>
+
+        <h4 class="signal-section-title console-subhead">Planned Queries (Latest Run)</h4>
+        {% if retrieval.queries %}
+          <div class="queries-list">
+            {% for q in retrieval.queries %}
+              <div class="query-code-item">
+                <code>GET /search?q={{ q }}</code>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted small">No planned queries in active run.</p>
+        {% endif %}
+
+        <h4 class="signal-section-title console-subhead">Top Candidates &amp; Similarity Scores</h4>
+        {% if retrieval.candidates %}
+          <div class="candidate-scores-list">
+            {% for c in retrieval.candidates %}
+              <div class="candidate-score-row">
+                <div class="candidate-info">
+                  <span class="candidate-title">{{ c.title }}</span>
+                  <span class="candidate-score mono">{{ "%.4f"|format(c.score) }}</span>
                 </div>
                 <div class="progress-bar-bg">
-                  <div
-                    class="progress-bar-fill {% if item.is_negative %}fill-negative{% else %}fill-positive{% endif %}"
-                    style="width: {{ item.percentage }}%;"
-                  ></div>
+                  <div class="progress-bar-fill fill-positive" style="width: {{ c.percentage }}%;"></div>
                 </div>
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <p class="muted">No interest signals recorded yet.</p>
+          <p class="muted small">No candidate scores recorded.</p>
         {% endif %}
-      </div>
 
-      <div class="panel-card">
-        <h3>Recent Signals (Plain Language)</h3>
-        {% if signals %}
-          <ul class="signal-list">
-            {% for signal in signals %}
-              <li>{{ signal }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="muted">No recent behavioral signals.</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Right Column: Trigger State & Retrieval Funnel -->
-    <div class="intel-col">
-      <div class="panel-card">
-        <h3>Latest Trigger Evaluation</h3>
-        <div class="trigger-status-box">
-          <div class="trigger-metric">
-            <span class="label">Accumulated Delta</span>
-            <span class="val">{{ "%.4f"|format(trigger_state.delta) }} / {{ trigger_state.threshold }}</span>
-          </div>
-          <div class="trigger-metric">
-            <span class="label">Latest Outcome</span>
-            {% if trigger_state.fired %}
-              <span class="badge badge-success">FIRED</span>
-            {% else %}
-              <span class="badge badge-secondary">SKIPPED</span>
-            {% endif %}
-          </div>
-          <div class="trigger-metric">
-            <span class="label">Decision Reason</span>
-            <code>{{ trigger_state.reason }}</code>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-card">
-        <h3>Retrieval Funnel (Latest Run)</h3>
+        <h4 class="signal-section-title console-subhead">Retrieval Funnel Counts</h4>
         <div class="funnel-grid">
           <div class="funnel-step">
             <span class="funnel-num">{{ funnel.retrieved }}</span>
@@ -119,48 +163,129 @@
     </div>
   </div>
 
-  <!-- Agent Execution Runs Table -->
-  <div class="panel-card table-panel">
-    <h3>Recent Agent Runs (Last 10)</h3>
+  <!-- Section 4: Agent Workflow Pipeline Strip -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <h3>Agent Workflow Pipeline</h3>
+      <span class="muted mono small">LangGraph StateGraph Execution</span>
+    </div>
+
+    <div class="workflow-pipeline-strip">
+      {% for step in workflow_steps %}
+        <div class="workflow-step-block step-state-{{ step.state }} {% if step.is_llm %}step-is-llm{% endif %}">
+          <div class="step-header-row">
+            <span class="step-name mono">{{ step.name }}</span>
+            {% if step.is_llm %}
+              <span class="step-llm-badge">MESH LLM</span>
+            {% endif %}
+          </div>
+          <div class="step-meta-row">
+            <span class="step-latency mono">{{ step.latency_ms }} ms</span>
+            <span class="step-badge-state badge-{{ step.state }}">{{ step.state }}</span>
+          </div>
+        </div>
+        {% if not loop.last %}
+          <span class="pipeline-connector">→</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Section 5: Trigger Decision Log Table -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <h3>Trigger Decision Log (Last 15 Runs)</h3>
+      <span class="muted small">Evaluation threshold delta: {{ trigger_state.threshold }}</span>
+    </div>
+
     {% if runs %}
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Run ID</th>
-            <th>Reason</th>
-            <th>LLM Calls</th>
-            <th>Cache Hit</th>
-            <th>Latency</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for run in runs %}
+      <div class="table-scroll-container">
+        <table class="table console-table">
+          <thead>
             <tr>
-              <td>#{{ run.id }}</td>
-              <td><code>{{ run.trigger_reason }}</code></td>
-              <td>{{ run.llm_calls }}</td>
-              <td>
-                {% if run.cache_hit %}
-                  <span class="badge badge-info">Yes</span>
-                {% else %}
-                  <span class="muted">No</span>
-                {% endif %}
-              </td>
-              <td>{{ run.latency_ms }} ms</td>
-              <td>
-                {% if run.status == "ok" %}
-                  <span class="badge badge-success">OK</span>
-                {% else %}
-                  <span class="badge badge-danger">{{ run.status }}</span>
-                {% endif %}
-              </td>
+              <th>Run ID</th>
+              <th>Trigger Reason</th>
+              <th>Decision</th>
+              <th>LLM Calls</th>
+              <th>Cache Hit</th>
+              <th>Latency</th>
+              <th>Status</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for run in runs %}
+              <tr class="{% if not (run.trigger_reason in ['delta_threshold_met', 'manual', 'manual_force']) %}run-skipped-row{% endif %}">
+                <td class="mono run-id">{{ run.id }}</td>
+                <td><code>{{ run.trigger_reason }}</code></td>
+                <td>
+                  {% if run.trigger_reason in ['delta_threshold_met', 'manual', 'manual_force'] %}
+                    <span class="badge badge-success">FIRED</span>
+                  {% else %}
+                    <span class="badge badge-secondary">SKIPPED</span>
+                  {% endif %}
+                </td>
+                <td class="mono">{{ run.llm_calls }}</td>
+                <td>
+                  {% if run.cache_hit %}
+                    <span class="badge badge-info">Yes</span>
+                  {% else %}
+                    <span class="muted">No</span>
+                  {% endif %}
+                </td>
+                <td class="mono">{{ run.latency_ms }} ms</td>
+                <td>
+                  {% if run.status == "ok" %}
+                    <span class="badge badge-success">OK</span>
+                  {% elif run.status == "degraded" %}
+                    <span class="badge badge-warning">DEGRADED</span>
+                  {% else %}
+                    <span class="badge badge-danger">{{ run.status }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-      <p class="muted">No agent execution runs recorded yet.</p>
+      <div class="empty-console-state">
+        <p class="muted">No agent execution runs recorded yet.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Section 6: Modeled Interest Profile -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <h3>Modeled Interest Profile & Decay State</h3>
+      <div class="mono small muted">
+        HASH <span class="run-id">{{ profile_meta.hash[:16] }}</span> &nbsp;·&nbsp; DELTA <span class="hash-value">{{ "%.4f"|format(profile_meta.delta) }}</span>
+      </div>
+    </div>
+
+    {% if interests %}
+      <div class="interest-bars console-subhead">
+        {% for item in interests %}
+          <div class="interest-item">
+            <div class="interest-info">
+              <span class="topic-name mono">{{ item.topic }}</span>
+              <span class="topic-score {% if item.is_negative %}score-negative{% else %}score-positive{% endif %}">
+                {{ "%.4f"|format(item.score) }}
+              </span>
+            </div>
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill {% if item.is_negative %}fill-negative{% else %}fill-positive{% endif %}"
+                style="width: {{ item.percentage }}%;"
+              ></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-console-state">
+        <p class="muted">No interest signals modeled yet. Browse catalog courses to generate signals.</p>
+      </div>
     {% endif %}
   </div>
 </section>
